@@ -42,7 +42,7 @@ def _run(stdscr) -> None:
         pass
 
     cfg = load_config()
-    renderer = CursesRenderer(stdscr)
+    renderer = CursesRenderer(stdscr, scale=cfg.scale)
     input_sys = Input(stdscr, controls=cfg.controls)
 
     current_scene = MenuScene(config=cfg)
@@ -126,7 +126,12 @@ def _run_headless(*, seconds: float, width: int, height: int) -> None:
     Runs the main loop for a limited time without input.
     """
     cfg = load_config()
-    renderer = StdoutRenderer(width=width, height=height)
+    # Allow overriding scale via TI_SCALE in headless, else use config
+    try:
+        scale = int(os.environ.get("TI_SCALE", str(load_config().scale)))
+    except Exception:
+        scale = load_config().scale
+    renderer = StdoutRenderer(width=width, height=height, scale=scale)
 
     current_scene = MenuScene(config=cfg)
     running = True

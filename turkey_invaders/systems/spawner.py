@@ -17,6 +17,7 @@ class Spawner:
         self.timer = 0.0
         self.spawn_accum = 0.0
         self.rng = random.Random(1337)
+        self._spawned_once = False  # for one-shot formation waves
         if waves_path is None:
             waves_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "waves.json")
         self._load_waves(waves_path)
@@ -44,9 +45,10 @@ class Spawner:
         self.timer += dt
 
         if wave.get("type") == "formation":
-            # Instant spawn once
-            if self.timer == dt:
+            # Instant spawn once at start of wave
+            if not self._spawned_once:
                 self._spawn_formation(wave)
+                self._spawned_once = True
         else:
             rate = float(wave.get("spawn_rate", 1.0))
             count = int(wave.get("count", 10))
@@ -63,6 +65,7 @@ class Spawner:
             self.wave_index += 1
             self.timer = 0.0
             self.spawn_accum = 0.0
+            self._spawned_once = False
 
     # --- spawn helpers ---
     def _spawn_formation(self, wave: Dict[str, Any]) -> None:
@@ -112,4 +115,3 @@ class Spawner:
                 return str(i.get("type", "grunt"))
             upto += w
         return str(items[-1].get("type", "grunt"))
-

@@ -10,9 +10,11 @@ class StdoutRenderer:
     Color/bold hints are ignored.
     """
 
-    def __init__(self, *, width: int = 80, height: int = 24) -> None:
+    def __init__(self, *, width: int = 80, height: int = 24, scale: int = 1) -> None:
+        # width/height are logical cells; scale inflates the printed buffer
         self.width = max(20, width)
         self.height = max(10, height)
+        self.scale = max(1, int(scale))
         self._buffer: List[List[str]] = []
 
     def get_size(self) -> tuple[int, int]:
@@ -37,10 +39,17 @@ class StdoutRenderer:
             row[x + i] = ch
 
     def end_frame(self) -> None:
-        # Trim trailing blank lines for compact output
-        lines = ["".join(row).rstrip() for row in self._buffer]
+        # Inflate buffer by scale
+        if self.scale > 1:
+            inflated: List[str] = []
+            for row in self._buffer:
+                line = "".join(ch * self.scale for ch in row).rstrip()
+                for _ in range(self.scale):
+                    inflated.append(line)
+            lines = inflated
+        else:
+            lines = ["".join(row).rstrip() for row in self._buffer]
         while lines and not lines[-1]:
             lines.pop()
         print("\n".join(lines))
         print("\n---")
-

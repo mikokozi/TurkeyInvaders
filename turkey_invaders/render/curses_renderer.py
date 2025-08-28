@@ -7,9 +7,12 @@ from typing import Tuple
 class CursesRenderer:
     """Minimal curses-based renderer with a simple API."""
 
-    def __init__(self, stdscr) -> None:
+    def __init__(self, stdscr, *, scale: int = 1) -> None:
         self.stdscr = stdscr
-        self.height, self.width = stdscr.getmaxyx()
+        self.term_height, self.term_width = stdscr.getmaxyx()
+        self.scale = max(1, int(scale))
+        self.height = max(1, self.term_height // self.scale)
+        self.width = max(1, self.term_width // self.scale)
         curses.start_color()
         curses.use_default_colors()
         try:
@@ -21,7 +24,9 @@ class CursesRenderer:
 
     def begin_frame(self) -> None:
         self.stdscr.erase()
-        self.height, self.width = self.stdscr.getmaxyx()
+        self.term_height, self.term_width = self.stdscr.getmaxyx()
+        self.height = max(1, self.term_height // self.scale)
+        self.width = max(1, self.term_width // self.scale)
 
     def end_frame(self) -> None:
         try:
@@ -31,6 +36,7 @@ class CursesRenderer:
             self.stdscr.refresh()
 
     def get_size(self) -> Tuple[int, int]:
+        # Return logical size, scaled down from terminal
         return self.width, self.height
 
     def draw_text(self, x: int, y: int, text: str, color_pair: int | None = None, bold: bool = False) -> None:
@@ -44,7 +50,17 @@ class CursesRenderer:
         attr = curses.color_pair(color_pair) if color_pair else 0
         if bold:
             attr |= curses.A_BOLD
-        try:
-            self.stdscr.addnstr(y, x, text, max(0, self.width - x), attr)
-        except Exception:
-            pass
+        # Scale horizontally by repeating characters
+        if self.scale > 1:
+            text = "".join(ch * self.scale for ch in text)
+        # Map logical coordinates to terminal coordinates
+        ty = y * self.scale
+        tx = x * self.scale
+        # Draw repeated vertically for vertical scale
+        for i in range(self.scale):
+            row_y = ty + i
+            if 0 <= row_y < self.term_height:
+                try:
+                    self.stdscr.addnstr(row_y, tx, text, max(0, self.term_width - tx), attr)
+                except Exception:
+                    pass

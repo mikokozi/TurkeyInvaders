@@ -8,6 +8,7 @@ from typing import Any, Dict
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     "fps": 60,
+    "scale": 1,
     "controls": {
         "left": ["LEFT", "a"],
         "right": ["RIGHT", "d"],
@@ -61,6 +62,14 @@ class Config:
     @property
     def fps(self) -> int:
         return int(self.data.get("fps", 60))
+
+    @property
+    def scale(self) -> int:
+        try:
+            s = int(self.data.get("scale", 1))
+        except Exception:
+            s = 1
+        return max(1, min(4, s))
 
     def save(self) -> None:
         os.makedirs(os.path.dirname(self.path), exist_ok=True)

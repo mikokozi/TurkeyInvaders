@@ -8,7 +8,7 @@ class OptionsScene(Scene):
     def __init__(self, config: Config) -> None:
         super().__init__()
         self.config = config
-        self.cursor = 0  # 0: FPS, 1: Power drop, 2: Bomb drop
+        self.cursor = 0  # 0: FPS, 1: Power drop, 2: Bomb drop, 3: Scale
         self.show_help = False
 
     def handle_actions(self, actions):
@@ -30,9 +30,9 @@ class OptionsScene(Scene):
             self.show_help = True
             return
         if 'up' in actions:
-            self.cursor = (self.cursor - 1) % 3
+            self.cursor = (self.cursor - 1) % 4
         if 'down' in actions:
-            self.cursor = (self.cursor + 1) % 3
+            self.cursor = (self.cursor + 1) % 4
         if 'left' in actions:
             self._adjust(-1)
         if 'right' in actions:
@@ -53,6 +53,9 @@ class OptionsScene(Scene):
         elif self.cursor == 2:
             p = max(0.0, min(1.0, float(self.config.drops.get('bomb', 0.05) + 0.05 * delta)))
             self.config.drops['bomb'] = p
+        elif self.cursor == 3:
+            s = max(1, min(4, int(self.config.scale + delta)))
+            self.config.set('scale', s)
 
     def render(self, r) -> None:
         w, h = r.get_size()
@@ -64,6 +67,7 @@ class OptionsScene(Scene):
             ("FPS", f"{self.config.fps}"),
             ("Power Drop", f"{self.config.drops.get('power', 0.2):.2f}"),
             ("Bomb Drop", f"{self.config.drops.get('bomb', 0.05):.2f}"),
+            ("Scale", f"{self.config.scale}x"),
         ]
         for idx, (label, value) in enumerate(entries):
             sel = "> " if idx == self.cursor else "  "
