@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Tuple
 
 from ..core.entity import BaseEntity
+from ..audio import sfx
 
 
 class Player(BaseEntity):
@@ -70,6 +71,7 @@ class Player(BaseEntity):
         self.invuln = 1.5
         if self.power > 0:
             self.power -= 1
+        sfx('hit')
 
     def sprite(self) -> Tuple[str, int | None, bool]:
         # Blink while invulnerable

@@ -7,6 +7,7 @@ from .render.stdout_renderer import StdoutRenderer
 from .input import Input
 from .scenes.menu import MenuScene
 from .config import load_config
+from .audio import set_sfx_enabled, set_music_enabled
 
 
 def main() -> None:
@@ -42,6 +43,8 @@ def _run(stdscr) -> None:
         pass
 
     cfg = load_config()
+    set_sfx_enabled(bool(cfg.audio.get('sfx', True)))
+    set_music_enabled(bool(cfg.audio.get('music', True)))
     renderer = CursesRenderer(stdscr, scale=cfg.scale)
     input_sys = Input(stdscr, controls=cfg.controls)
 
@@ -132,6 +135,10 @@ def _run_headless(*, seconds: float, width: int, height: int) -> None:
     Runs the main loop for a limited time without input.
     """
     cfg = load_config()
+    # Print config warnings in headless mode
+    if getattr(cfg, 'warnings', None):
+        for wmsg in cfg.warnings:
+            print(f"[config] {wmsg}")
     # Allow overriding scale via TI_SCALE in headless, else use config
     try:
         scale = int(os.environ.get("TI_SCALE", str(load_config().scale)))

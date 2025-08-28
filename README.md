@@ -34,12 +34,17 @@ Turkey Invaders is a terminal-only arcade shooter inspired by Chicken Invaders, 
 - Systems: Collision (AABB), Spawner (formation/dive/mixed) reading `data/waves.json` and seeded RNG.
 - HUD: Score, Wave id, Lives, Power, Bombs.
 - Config: Loads from `~/.config/turkey_invaders/config.json` (created on save from Options).
+- Audio: Lightweight synthesized SFX (requires optional `simpleaudio`; falls back to terminal bell).
+- Colors: Distinct colors for player, enemies, projectiles, and power-ups.
+ - Arcade polish: chicken ASCII sprites, score popups, combo bonuses, light screen shake.
 
 ## Configuration
 - File: `~/.config/turkey_invaders/config.json`
 - Editable via the in-game Options screen (`O` in menu). Currently supports:
   - `fps` (30–120)
   - `scale` (1–4; increases on-screen size)
+  - `audio.music` (`true`/`false`)
+  - `audio.sfx` (`true`/`false`)
   - `drops.power` (0.0–1.0 probability)
   - `drops.bomb` (0.0–1.0 probability)
   - `controls` (action→keys; names like `LEFT`, `RIGHT`, `SPACE`, `ENTER` or single characters)
@@ -48,10 +53,16 @@ Example (partial):
 ```
 {
   "fps": 60,
+  "scale": 2,
   "controls": { "fire": ["SPACE"], "bomb": ["x"] },
   "drops": { "power": 0.20, "bomb": 0.05 }
 }
 ```
+
+## Audio (optional)
+- For richer sound effects, install `simpleaudio` in your venv:
+  - `pip install simpleaudio`
+- Without it, the game falls back to a simple terminal bell.
 
 ## Waves Data
 - File: `turkey_invaders/data/waves.json`
@@ -77,6 +88,10 @@ Example (partial):
 - Colors not showing: Some terminals limit colors; basic attributes are used.
 - Reset terminal after crash: run `reset` if the terminal looks garbled.
 - Clear config: remove `~/.config/turkey_invaders/config.json` to restore defaults.
+- Config warnings: If the config file is malformed or cannot be saved, the game falls back to defaults. In headless mode, warnings print prefixed with `[config]`.
+
+## Movement Notes
+- Movement uses dt-based stepping with short hold smoothing so travel speed stays consistent across FPS and key repeat settings.
 
 ## Roadmap (next steps)
 - Persistent high scores with initials prompt.

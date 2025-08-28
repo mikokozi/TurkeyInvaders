@@ -18,7 +18,10 @@ class CursesRenderer:
         try:
             curses.init_pair(1, curses.COLOR_YELLOW, -1)  # HUD/Title
             curses.init_pair(2, curses.COLOR_CYAN, -1)    # Player
-            curses.init_pair(3, curses.COLOR_RED, -1)     # Warning
+            curses.init_pair(3, curses.COLOR_RED, -1)     # Enemies/Warnings
+            curses.init_pair(4, curses.COLOR_GREEN, -1)   # Player projectiles / Power up
+            curses.init_pair(5, curses.COLOR_MAGENTA, -1) # Enemy projectiles / Bomb up
+            curses.init_pair(6, curses.COLOR_WHITE, -1)   # Neutral text
         except Exception:
             pass
 

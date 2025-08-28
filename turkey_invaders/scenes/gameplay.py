@@ -6,9 +6,11 @@ from ..core.world import World
 from ..entities.player import Player
 from ..entities.projectile import Projectile
 from ..entities.powerup import PowerUp
+from ..entities.popup import Popup
 from ..systems.collision import resolve_collisions
 from ..systems.spawner import Spawner
 from ..config import Config
+from ..audio import sfx
 
 
 class GameplayScene(Scene):
@@ -25,9 +27,16 @@ class GameplayScene(Scene):
         self._was_paused = False
         self._bomb_flash = 0.0
         self.config = config
-        # per-frame movement intent (-1, 0, +1) for dt-based motion
-        self._intent_x = 0
-        self._intent_y = 0
+        self.shake_time = 0.0
+        self._last_lives = 3
+        self.combo = 0
+        self.combo_timer = 0.0
+        self.combo_window = 1.5
+        # Movement hold timers to smooth key repeat variability
+        self._hold_left = 0.0
+        self._hold_right = 0.0
+        self._hold_up = 0.0
+        self._hold_down = 0.0
 
     def _ensure_initialized(self, w: int, h: int) -> None:
         if self.player is not None:
@@ -63,22 +72,20 @@ class GameplayScene(Scene):
             return
         if self.player is None:
             return
-        # Movement: record intent; applied during update(dt)
-        ix = 0
-        iy = 0
+        # Movement: bump hold timers; applied continuously during update(dt)
+        HOLD_MS = 0.12
         if 'left' in actions:
-            ix -= 1
+            self._hold_left = HOLD_MS
         if 'right' in actions:
-            ix += 1
+            self._hold_right = HOLD_MS
         if 'up' in actions:
-            iy -= 1
+            self._hold_up = HOLD_MS
         if 'down' in actions:
-            iy += 1
-        self._intent_x = ix
-        self._intent_y = iy
+            self._hold_down = HOLD_MS
         # Fire
         if 'fire' in actions and self.player.can_fire():
             self.player.did_fire()
+            sfx('fire')
             # Fire pattern based on power (0:1, 1:2, >=2:3)
             xs: list[int]
             if self.player.power <= 0:
@@ -101,6 +108,7 @@ class GameplayScene(Scene):
             if cleared > 0:
                 self.player.bombs -= 1
                 self._bomb_flash = 0.6
+                sfx('bomb')
 
     def update(self, dt: float) -> None:
         if self.paused:
@@ -108,12 +116,20 @@ class GameplayScene(Scene):
         if self._bomb_flash > 0:
             self._bomb_flash = max(0.0, self._bomb_flash - dt)
         # Update world bounds may change on resize (handled in render)
-        # Apply dt-based movement intent to player
+        # Decay hold timers and compute movement intent independent of OS repeat
         if self.player is not None:
-            self.player.move_intent(self._intent_x, self._intent_y, dt)
-        # Reset intent for next frame
-        self._intent_x = 0
-        self._intent_y = 0
+            self._hold_left = max(0.0, self._hold_left - dt)
+            self._hold_right = max(0.0, self._hold_right - dt)
+            self._hold_up = max(0.0, self._hold_up - dt)
+            self._hold_down = max(0.0, self._hold_down - dt)
+            ix = (-1 if self._hold_left > 0 else 0) + (1 if self._hold_right > 0 else 0)
+            iy = (-1 if self._hold_up > 0 else 0) + (1 if self._hold_down > 0 else 0)
+            # If both pressed, prefer no movement on that axis
+            if self._hold_left > 0 and self._hold_right > 0:
+                ix = 0
+            if self._hold_up > 0 and self._hold_down > 0:
+                iy = 0
+            self.player.move_intent(ix, iy, dt)
         # Update entities
         for e in list(self.world.entities):
             e.update(dt, self.world)
@@ -128,7 +144,16 @@ class GameplayScene(Scene):
         # Scoring, drops, and cleanup: enemies that died -> score and occasional drops
         for e in list(self.world.by_kind.get("enemy", [])):
             if not e.alive:
-                self.score += 10
+                # Combo scoring and popup
+                if self.combo_timer > 0:
+                    self.combo += 1
+                else:
+                    self.combo = 1
+                bonus = 10 * self.combo
+                self.score += bonus
+                self.combo_timer = self.combo_window
+                pidp = self.world.next_id()
+                self.world.add(Popup(pidp, e.x, e.y, f"+{bonus}"))
                 # Drops based on config
                 rng = self.spawner.rng if self.spawner else None
                 roll = rng.random() if rng else 0.0
@@ -142,9 +167,19 @@ class GameplayScene(Scene):
                     self.world.add(PowerUp(kid, e.x, e.y, kind='bomb'))
         self.world.remove_dead()
 
-        # Lives / game over
+        # Combo decay
+        if self.combo_timer > 0:
+            self.combo_timer -= dt
+            if self.combo_timer <= 0:
+                self.combo = 0
+
+        # Lives / game over and shake on hit
         if self.player and self.player.lives <= 0:
             self.next_scene = GameOverScene(self.score)
+            sfx('gameover')
+        if self.player and self.player.lives < self._last_lives:
+            self.shake_time = 0.3
+            self._last_lives = self.player.lives
 
     def render(self, r) -> None:
         w, h = r.get_size()
@@ -163,20 +198,26 @@ class GameplayScene(Scene):
         r.draw_text(0, 1, "-" * w)
         r.draw_text(0, h - 1, "-" * w)
 
-        # Draw entities
-        fancy = getattr(self.config, 'scale', 1) >= 2
+        # Draw entities with light screen shake when hit
+        import random as _random
+        sx = sy = 0
+        if self.shake_time > 0:
+            self.shake_time = max(0.0, self.shake_time - (1.0 / max(60, int(1/dt)) if dt > 0 else 0.02))
+            sx = _random.choice([-1, 0, 1])
+            sy = _random.choice([-1, 0, 1])
+
+        # Draw entities (always use chicken icons)
         for e in self.world.entities:
-            if fancy and e.kind == 'player':
-                self._draw_player_chicken(r, e.x, e.y)
-            elif fancy and e.kind == 'enemy':
-                self._draw_enemy_chicken(r, e.x, e.y)
+            if e.kind == 'player':
+                self._draw_player_chicken(r, e.x + sx, e.y + sy)
+            elif e.kind == 'enemy':
+                self._draw_enemy_chicken(r, e.x + sx, e.y + sy)
             else:
                 ch, color, bold = e.sprite()
-                r.draw_text(e.x, e.y, ch, color_pair=color, bold=bold)
+                r.draw_text(e.x + sx, e.y + sy, ch, color_pair=color, bold=bold)
 
         # HUD extras
         if self.player:
-            r.draw_text(1, 0, f"Score: {self.score}", color_pair=1)
             r.draw_text(w - 30, 0, f"Power: {self.player.power}", color_pair=1)
             r.draw_text(w - 16, 0, f"Bombs: {getattr(self.player, 'bombs', 0)}", color_pair=1)
 
@@ -240,4 +281,4 @@ class GameplayScene(Scene):
             "(U)",
         ]
         for i, row in enumerate(rows):
-            r.draw_text(x - 1, y - 1 + i, row, color_pair=None, bold=False)
+            r.draw_text(x - 1, y - 1 + i, row, color_pair=3, bold=False)

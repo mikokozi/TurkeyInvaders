@@ -18,4 +18,4 @@ class GameOverScene(Scene):
         r.draw_text(max(0, w // 2 - len(title) // 2), h // 2 - 1, title, color_pair=3, bold=True)
         msg = f"Score: {self.score}"
         r.draw_text(max(0, w // 2 - len(msg) // 2), h // 2 + 0, msg)
-        r.draw_text(max(0, w // 2 - 11), h // 2 + 2, "Press Q to exit")
+        r.draw_text(max(0, w // 2 - 17), h // 2 + 2, "Press Q/Enter/Space to exit")

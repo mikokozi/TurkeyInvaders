@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     "fps": 60,
     "scale": 1,
+    "audio": {"music": True, "sfx": True},
     "controls": {
         "left": ["LEFT", "a"],
         "right": ["RIGHT", "d"],
@@ -44,6 +45,7 @@ def _cfg_path() -> str:
 class Config:
     data: Dict[str, Any] = field(default_factory=lambda: json.loads(json.dumps(DEFAULT_CONFIG)))
     path: str = field(default_factory=_cfg_path)
+    warnings: List[str] = field(default_factory=list)
 
     def get(self, key: str, default: Any = None) -> Any:
         return self.data.get(key, default)
@@ -71,10 +73,17 @@ class Config:
             s = 1
         return max(1, min(4, s))
 
+    @property
+    def audio(self) -> Dict[str, Any]:
+        return self.data.setdefault("audio", {"music": True, "sfx": True})
+
     def save(self) -> None:
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        with open(self.path, "w", encoding="utf-8") as f:
-            json.dump(self.data, f, indent=2)
+        try:
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+            with open(self.path, "w", encoding="utf-8") as f:
+                json.dump(self.data, f, indent=2)
+        except Exception as e:  # pragma: no cover - environment dependent
+            self.warnings.append(f"Failed to save config to {self.path}: {e}")
 
 
 def load_config() -> Config:
@@ -83,7 +92,11 @@ def load_config() -> Config:
     try:
         if os.path.exists(path):
             with open(path, "r", encoding="utf-8") as f:
-                user = json.load(f)
+                try:
+                    user = json.load(f)
+                except Exception as e:
+                    cfg.warnings.append(f"Invalid JSON in config {path}: {e}; using defaults")
+                    user = {}
             # Merge shallowly
             merged = json.loads(json.dumps(DEFAULT_CONFIG))
             def merge(a, b):
@@ -95,6 +108,6 @@ def load_config() -> Config:
                 return a
             merged = merge(merged, user)
             cfg.data = merged
-    except Exception:
-        pass
+    except Exception as e:
+        cfg.warnings.append(f"Failed to load config {path}: {e}; using defaults")
     return cfg
