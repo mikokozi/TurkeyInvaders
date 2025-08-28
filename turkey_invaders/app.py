@@ -91,6 +91,12 @@ def _run(stdscr) -> None:
             _render_confirm_exit(renderer, confirm_choice)
         renderer.end_frame()
 
+        # Apply runtime scale changes from options (no restart needed)
+        try:
+            renderer.scale = cfg.scale  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
         if confirm_exit:
             # Handle confirm input
             if 'left' in actions or 'right' in actions:

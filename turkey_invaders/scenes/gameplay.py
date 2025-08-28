@@ -164,9 +164,15 @@ class GameplayScene(Scene):
         r.draw_text(0, h - 1, "-" * w)
 
         # Draw entities
+        fancy = getattr(self.config, 'scale', 1) >= 2
         for e in self.world.entities:
-            ch, color, bold = e.sprite()
-            r.draw_text(e.x, e.y, ch, color_pair=color, bold=bold)
+            if fancy and e.kind == 'player':
+                self._draw_player_chicken(r, e.x, e.y)
+            elif fancy and e.kind == 'enemy':
+                self._draw_enemy_chicken(r, e.x, e.y)
+            else:
+                ch, color, bold = e.sprite()
+                r.draw_text(e.x, e.y, ch, color_pair=color, bold=bold)
 
         # HUD extras
         if self.player:
@@ -210,3 +216,28 @@ class GameplayScene(Scene):
             for i, s in enumerate(lines, start=1):
                 r.draw_text(x0, y0 + i, "| " + s.ljust(box_w - 4) + " |", color_pair=1)
             r.draw_text(x0, y0 + box_h - 1, "+" + "-" * (box_w - 2) + "+", color_pair=1)
+
+    def _draw_player_chicken(self, r, x: int, y: int) -> None:
+        # 3x3 chicken-ish icon for player
+        #   " ^ "
+        #   "(o>)"  beak to the right
+        #   " /\\"
+        rows = [
+            " ^ ",
+            "(o>)",
+            " /\\",
+        ]
+        colors = [2, 2, 2]
+        for i, row in enumerate(rows):
+            r.draw_text(x - 1, y - 1 + i, row, color_pair=colors[i], bold=True)
+
+    def _draw_enemy_chicken(self, r, x: int, y: int) -> None:
+        # 3x2 turkey/chicken-like enemy
+        #   " v "
+        #   "(U)"
+        rows = [
+            " v ",
+            "(U)",
+        ]
+        for i, row in enumerate(rows):
+            r.draw_text(x - 1, y - 1 + i, row, color_pair=None, bold=False)

@@ -39,6 +39,7 @@ Turkey Invaders is a terminal-only arcade shooter inspired by Chicken Invaders, 
 - File: `~/.config/turkey_invaders/config.json`
 - Editable via the in-game Options screen (`O` in menu). Currently supports:
   - `fps` (30–120)
+  - `scale` (1–4; increases on-screen size)
   - `drops.power` (0.0–1.0 probability)
   - `drops.bomb` (0.0–1.0 probability)
   - `controls` (action→keys; names like `LEFT`, `RIGHT`, `SPACE`, `ENTER` or single characters)
