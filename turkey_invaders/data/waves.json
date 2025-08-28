@@ -1,0 +1,9 @@
+{
+  "seed": 1337,
+  "waves": [
+    { "id": "wave1", "type": "formation", "rows": 2, "cols": 8, "speed": 2.0 },
+    { "id": "wave2", "type": "dive", "count": 14, "spawn_rate": 1.2, "speed": 3.0 },
+    { "id": "wave3", "type": "mixed", "count": 18, "spawn_rate": 1.5, "speed": 2.3, "fire_interval": 2.0,
+      "patterns": [ { "type": "grunt", "weight": 3 }, { "type": "shooter", "weight": 1 } ] }
+  ]
+}

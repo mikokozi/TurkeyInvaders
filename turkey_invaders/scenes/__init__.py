@@ -1,0 +1,1 @@
+"""Scenes for Turkey Invaders."""
