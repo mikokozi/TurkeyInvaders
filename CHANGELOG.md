@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.1.0 — 2025-08-28 (Final for Today)
+
+Stabilization and audit fixes for the terminal game MVP:
+
+- Fixed timestep loop with capped catch-up (curses + headless).
+- dt-based player movement with sub-cell accumulators and short hold smoothing.
+- Robust formation spawning (one-shot flag) instead of fragile float checks.
+- Config: collect warnings on load/save issues; headless prints [config] messages.
+- HUD/UI: remove duplicate Score draw; clarify Game Over prompt.
+- Renderer scaling supported (curses + headless); headless respects TI_SCALE.
+- Repo hygiene: add .gitignore for venv/pycache/IDE files.
+- Tests: add minimal unit tests for collisions, spawner, and input mappings.
+
+---
+
 ## 2025-08-28
 
 Scope: make the terminal shooter playable end-to-end with better UX, visuals, audio, and CLI ergonomics.
@@ -37,4 +52,3 @@ Scope: make the terminal shooter playable end-to-end with better UX, visuals, au
 - Docs
   - README expanded with How to Play, Help overlay, Scale, Audio (optional), and troubleshooting.
   - Added headless usage notes and start.sh examples.
-
